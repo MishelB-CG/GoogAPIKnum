@@ -28,8 +28,8 @@ It is based on patterns and validation ideas from the excellent https://github.c
 
 ## Installation
 
-1. Download the extension file (e.g., apiknum_plus_plus.py).
-2. Install Jython standalone (e.g., jython-standalone-2.7.x.jar).
+1. Download the extension file [APIKnum++.py](https://raw.githubusercontent.com/MishelB-CG/GoogAPIKnum/refs/heads/main/Burpsuite%20APIKnum%2B%2B/APIKnum%2B%2B.py).
+2. Install Jython standalone [jython-standalone](https://central.sonatype.com/artifact/org.python/jython-standalone/versions).
 3. In Burp Suite:
    - Go to Extender → Options → Python Environment.
    - Set the path to the Jython JAR.
