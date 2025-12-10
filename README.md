@@ -17,18 +17,33 @@ GoogAPIKnum is a command‑line tool for enumerating authorization controls of G
 
 ## Installation
 
+
 ### 1. Clone the repository
 ```bash
 git clone https://github.com/<your-user>/GoogAPIKnum.git
 cd GoogAPIKnum
 ```
 
-### 2. Install Python dependencies
+### 2. Automated installation using pip (recommended)
+This installs GoogAPIKnum in editable mode and automatically registers the entry-point script:
+
 ```bash
-pip install -r requirements.txt
+pip install -e .
+```
+
+After installation, you can run the tool with:
+
+```bash
+googapi-knum <API_KEY>
 ```
 
 ### 3. Install Playwright browser components
+GoogAPIKnum will check during first execution whether Playwright and the Chromium browser are installed.
+
+If missing, it will prompt you or attempt to install automatically.
+
+You may also install manually:
+
 ```bash
 playwright install chromium
 ```
