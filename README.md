@@ -39,19 +39,19 @@ playwright install chromium
 
 ### Basic usage
 ```bash
-python -m googapi_knum <API_KEY>
+python -m googapi-knum <API_KEY>
 ```
 
 ### Test with specific Origin and Referer
 ```bash
-python -m googapi_knum <API_KEY> -O https://attacker.example -R https://attacker.example/page
+python -m googapi-knum <API_KEY> -O https://attacker.example -R https://attacker.example/page
 ```
 
 ### Export JSON/CSV/Markdown output
 ```bash
-python -m googapi_knum <API_KEY> -f json --out results.json
-python -m googapi_knum <API_KEY> -f csv  --out results.csv
-python -m googapi_knum <API_KEY> -f txt --out results.txt
+python -m googapi-knum <API_KEY> -f json --out results.json
+python -m googapi-knum <API_KEY> -f csv  --out results.csv
+python -m googapi-knum <API_KEY> -f text --out results.txt
 ```
 
 ---
