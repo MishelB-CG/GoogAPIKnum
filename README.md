@@ -219,12 +219,7 @@ Guidelines:
 - Try minimal endpoints (`/me`, `/verify`, `/metadata`).
 - Document what your validator checks.
 
-## License
-
-Provided for authorized security testing only.
-
-
 ## Security Notice
 
-Use GoogAPIKnum **only** on systems and applications you are explicitly authorized to test.  
+Use GoogAPIKnum and APIKnum++ **only** on systems and applications you are explicitly authorized to test.  
 Misuse may violate service terms, trigger billing charges, or result in legal consequences.
