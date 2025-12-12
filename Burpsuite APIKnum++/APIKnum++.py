@@ -91,7 +91,8 @@ PROVIDER_DEFS = [
         "regexes": [
             r"\b[0-9a-fA-F]{32}\b",
         ],
-        "validator": "validate_hubspot_hapikey",
+                "context_keywords": ["hapikey", "hubapi.com", "hubspot"],
+"validator": "validate_hubspot_hapikey",
         "needs_context": False,
     },
     {
@@ -116,7 +117,8 @@ PROVIDER_DEFS = [
         "regexes": [
             r"[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}",
         ],
-        "validator": "validate_pendo_integration_key",
+                "context_keywords": ["x-pendo-integration-key", "pendo"],
+"validator": "validate_pendo_integration_key",
         "needs_context": False,
     },
     {
@@ -442,14 +444,25 @@ class BurpExtender(IBurpExtender, IScannerCheck):
 
     def _find_provider_matches_in_text(self, text):
         matches = []
+        tlower = text.lower()
         for provider in self._providers:
+            ctx_keywords = provider.get("context_keywords")
             for cregex in provider["regexes"]:
                 for m in cregex.finditer(text):
+                    if ctx_keywords:
+                        start = max(0, m.start() - 80)
+                        end = min(len(text), m.end() + 80)
+                        window = tlower[start:end]
+                        ok = False
+                        for kw in ctx_keywords:
+                            if kw.lower() in window:
+                                ok = True
+                                break
+                        if not ok:
+                            continue
                     key = m.group(0)
                     matches.append((provider, key))
         return matches
-
-    # ------------- Background validation (passive) -------------
 
     def _run_provider_validation(self, provider, key, baseRequestResponse, is_authenticated):
         prov_id = provider["id"]
@@ -504,76 +517,71 @@ class BurpExtender(IBurpExtender, IScannerCheck):
                 }
 
     def _status_to_flag(self, status, provider):
+        # Normalized statuses:
+        #   - invalid: not a real key / token rejected
+        #   - restricted: key exists but is blocked by ACL/scope/origin/IP/referrer restrictions
+        #   - unrestricted: key works from scanner environment (highest risk)
+        #   - needs_context: cannot validate without extra identifiers/secrets
+        #   - unknown/error: validator could not decide
+        if status in ("unrestricted", "restricted", "invalid", "error", "unknown"):
+            return status
         if status == "valid":
-            return "valid"
+            return "unrestricted"
         if status == "unknown" and provider.get("needs_context", False):
             return "needs_context"
-        if status in ("invalid", "unknown", "error"):
-            return status
-        return "unknown"
-
-    # ------------- Issue creation + key markers -------------
+        return "unknown" 
 
     def _build_issue(self, provider, key, info, baseRequestResponse, is_authenticated, status_flag):
         analyzed = self._helpers.analyzeRequest(baseRequestResponse)
         url = analyzed.getUrl()
 
-        snippet = key[:3] + "..." + key[-3:]
+        snippet = key
         prov_name = provider["name"]
 
-        if status_flag == "valid":
+        if status_flag == "unrestricted":
             if is_authenticated:
                 severity = "Medium"
-                context = "Key appears in an authenticated response/request."
+                context = "Valid key/token confirmed from the scanner environment. It appears in an authenticated request/response."
             else:
-                severity = "High"
-                context = "Key appears in a response/request that looks unauthenticated."
-            name = "Leaked valid %s API key/token (APIKnum++)" % prov_name
+                severity = "Medium"
+                context = "Valid key/token confirmed from the scanner environment and appears in content that looks unauthenticated."
+            name = "UNRESTRICTED %s (APIKnum++)" % prov_name
+            validation_line = info
+            confidence = "Firm"
+        elif status_flag == "restricted":
+            severity = "Information"
+            context = (
+                "Valid key/token confirmed, but provider-side restrictions (IP/origin/referrer, scopes, SSO, or ACLs) "
+                "appear to block use from the scanner environment. This is still a secret exposure."
+            )
+            name = "RESTRICTED %s (APIKnum++)" % prov_name
             validation_line = info
             confidence = "Firm"
         elif status_flag == "needs_context":
             severity = "Information"
             context = (
-                "The key was detected and appears to belong to %s, but the extension "
-                "cannot fully validate its impact without additional context "
-                "(for example paired secrets, project/tenant configuration, or provider ACLs)."
-            ) % prov_name
-            name = "%s API key/token requires manual access-control verification (APIKnum++)" % prov_name
+                "A provider-specific identifier/secret is required to validate this credential (for example paired secrets, "
+                "project/tenant configuration, or provider ACLs). Treat as potential exposure and validate manually."
+            )
+            name = "%s requires manual verification (APIKnum++)" % prov_name
             validation_line = info
             confidence = "Tentative"
-        elif status_flag == "invalid":
-            severity = "Information"
-            context = (
-                "The key was detected, but validation suggests it is invalid from the scanner "
-                "environment. It may still be valid in another environment (different IP/origin) "
-                "or indicate legacy/test credentials that should be removed."
-            )
-            name = "%s API key/token detected - appears invalid from scanner (APIKnum++)" % prov_name
-            validation_line = info
-            confidence = "Firm"
         elif status_flag == "error":
             severity = "Information"
             context = (
                 "The key was detected, but the validator encountered an error (network/provider "
                 "issue). Treat this as a potential key exposure and validate manually."
             )
-            name = "%s API key/token detected - validation error (APIKnum++)" % prov_name
+            name = "%s detected - validation error (APIKnum++)" % prov_name
             validation_line = info
             confidence = "Tentative"
         else:  # "unknown"
-            severity = "Information"
-            context = (
-                "The key was detected, but the validator could not determine whether it is "
-                "valid or restricted from the scanner environment. Manual checks are required."
-            )
-            name = "%s API key/token detected - validation inconclusive (APIKnum++)" % prov_name
-            validation_line = info
-            confidence = "Tentative"
+            return None
 
         detail = (
             "APIKnum++ identified an API credential. <br>\n"
             "<b>Provider:</b> %s<br>\n"
-            "<b>Key snippet:</b> %s<br>\n"
+            "<b>Identified key:</b> %s<br>\n"
             "<b>Validation / notes:</b> %s<br>\n"
             "<b>Context:</b> %s\n"
         ) % (prov_name, snippet, validation_line, context)
@@ -692,7 +700,7 @@ class BurpExtender(IBurpExtender, IScannerCheck):
         if status is None:
             return "unknown", "No response from Slack webhook"
         if "missing_text_or_fallback_or_attachments" in resp_body:
-            return "valid", "Slack webhook responded with missing_text_or_fallback_or_attachments (valid endpoint)"
+            return "unrestricted", "Slack webhook responded with missing_text_or_fallback_or_attachments (valid endpoint)"
         if status == 404 or "invalid" in resp_body.lower():
             return "invalid", "Slack webhook returned error (%d)" % status
         return "unknown", "Slack webhook response (%d) did not match expected pattern" % status
@@ -707,7 +715,7 @@ class BurpExtender(IBurpExtender, IScannerCheck):
             return "unknown", "No response from Slack API"
         bl = body.lower()
         if '"ok":true' in bl.replace(" ", "") or '"ok": true' in bl:
-            return "valid", "Slack auth.test returned ok=true (token accepted)"
+            return "unrestricted", "Slack auth.test returned ok=true (token accepted)"
         if "invalid_auth" in bl or "not_authed" in bl:
             return "invalid", "Slack auth.test reported invalid_auth/not_authed"
         return "unknown", "Slack auth.test HTTP %d" % status
@@ -721,9 +729,11 @@ class BurpExtender(IBurpExtender, IScannerCheck):
         if status is None:
             return "unknown", "No response from GitHub"
         if status == 200 and '"login"' in body:
-            return "valid", "GitHub /user returned 200 with login field (token accepted)"
-        if status == 401 or status == 403:
-            return "invalid", "GitHub returned %d for token" % status
+            return "unrestricted", "GitHub /user returned 200 with login field (token accepted)"
+        if status == 401:
+            return "invalid", "GitHub returned 401 (invalid/expired token)"
+        if status in (403, 404):
+            return "restricted", "GitHub returned %d (token valid but insufficient permissions / SSO / scope)" % status
         return "unknown", "GitHub /user HTTP %d" % status
 
     def validate_sendgrid_token(self, token):
@@ -735,7 +745,7 @@ class BurpExtender(IBurpExtender, IScannerCheck):
         if status is None:
             return "unknown", "No response from SendGrid"
         if status == 200 and "scopes" in body:
-            return "valid", "SendGrid /v3/scopes returned scopes (token accepted)"
+            return "unrestricted", "SendGrid /v3/scopes returned scopes (token accepted)"
         if status in (401, 403):
             return "invalid", "SendGrid returned %d (unauthorized)" % status
         return "unknown", "SendGrid /v3/scopes HTTP %d" % status
@@ -746,7 +756,7 @@ class BurpExtender(IBurpExtender, IScannerCheck):
         if status is None:
             return "unknown", "No response from Square"
         if status == 200 and '"locations"' in body:
-            return "valid", "Square /v2/locations returned locations (token accepted)"
+            return "unrestricted", "Square /v2/locations returned locations (token accepted)"
         if status == 401 or "UNAUTHORIZED" in body:
             return "invalid", "Square reported unauthorized"
         return "unknown", "Square /v2/locations HTTP %d" % status
@@ -758,7 +768,7 @@ class BurpExtender(IBurpExtender, IScannerCheck):
             return "unknown", "No response from HubSpot"
         bl = body.lower()
         if status == 200 and "[" in body and "ownerid" in bl:
-            return "valid", "HubSpot owners API returned data (hapikey accepted)"
+            return "unrestricted", "HubSpot owners API returned data (hapikey accepted)"
         if status in (401, 403):
             return "invalid", "HubSpot returned %d (unauthorized)" % status
         return "unknown", "HubSpot /owners HTTP %d" % status
@@ -770,7 +780,7 @@ class BurpExtender(IBurpExtender, IScannerCheck):
         if status is None:
             return "unknown", "No response from Infura"
         if status == 200 and '"result"' in body_resp:
-            return "valid", "Infura returned JSON-RPC result (key accepted)"
+            return "unrestricted", "Infura returned JSON-RPC result (key accepted)"
         if status in (401, 403):
             return "invalid", "Infura returned %d (unauthorized)" % status
         return "unknown", "Infura HTTP %d" % status
@@ -786,7 +796,7 @@ class BurpExtender(IBurpExtender, IScannerCheck):
         if status is None:
             return "unknown", "No response from Dropbox"
         if status == 200 and '"account_id"' in body:
-            return "valid", "Dropbox current_account returned account_id (token accepted)"
+            return "unrestricted", "Dropbox current_account returned account_id (token accepted)"
         if status in (401, 403):
             return "invalid", "Dropbox returned %d (unauthorized)" % status
         return "unknown", "Dropbox HTTP %d" % status
@@ -800,7 +810,7 @@ class BurpExtender(IBurpExtender, IScannerCheck):
         if status is None:
             return "unknown", "No response from Pendo"
         if status == 200 and ("[" in body or "{" in body):
-            return "valid", "Pendo /api/v1/feature returned data (key accepted)"
+            return "unrestricted", "Pendo /api/v1/feature returned data (key accepted)"
         if status in (401, 403):
             return "invalid", "Pendo returned %d (unauthorized)" % status
         return "unknown", "Pendo HTTP %d" % status
@@ -824,7 +834,7 @@ class BurpExtender(IBurpExtender, IScannerCheck):
         if status is None:
             return "unknown", "No response from Stripe"
         if status == 200 and '"data"' in body:
-            return "valid", "Stripe /v1/charges returned data (secret key accepted)"
+            return "unrestricted", "Stripe /v1/charges returned data (secret key accepted)"
         if status in (401, 403):
             return "invalid", "Stripe returned %d (unauthorized)" % status
         return "unknown", "Stripe HTTP %d" % status
@@ -846,7 +856,7 @@ class BurpExtender(IBurpExtender, IScannerCheck):
            "this ip, site or mobile application is not authorized" in bl or \
            "referernotallowedmaperror" in bl:
             return (
-                "unknown",
+                "restricted",
                 "Google API responded with a restriction-related error. "
                 "The key likely exists but is restricted by IP/referrer/origin. "
                 "Manually confirm restrictions and scopes in GCP."
@@ -914,8 +924,10 @@ class BurpExtender(IBurpExtender, IScannerCheck):
                 "Mapbox Tokens API accepted the token from the scanner IP. "
                 "Review token scopes and allowed URLs."
             )
-        if status in (401, 403):
-            return "invalid", "Mapbox returned %d (unauthorized)" % status
+        if status == 401:
+            return "invalid", "Mapbox returned 401 (invalid/expired token)"
+        if status == 403:
+            return "restricted", "Mapbox returned 403 (token lacks scopes/ACLs or is otherwise restricted)"
         return "unknown", "Mapbox tokens API HTTP %d" % status
 
     def validate_gitlab_pat(self, token):
@@ -926,7 +938,7 @@ class BurpExtender(IBurpExtender, IScannerCheck):
         if status is None:
             return "unknown", "No response from gitlab.com"
         if status == 200 and '"username"' in body:
-            return "valid", "GitLab /user returned 200 with username (token accepted)"
+            return "unrestricted", "GitLab /user returned 200 with username (token accepted)"
         if status in (401, 403):
             return "invalid", "GitLab returned %d (unauthorized)" % status
         return "unknown", "GitLab /user HTTP %d" % status
@@ -938,7 +950,7 @@ class BurpExtender(IBurpExtender, IScannerCheck):
             return "unknown", "No response from Telegram"
         bl = body.lower()
         if status == 200 and '"ok":true' in bl.replace(" ", ""):
-            return "valid", "Telegram getMe succeeded (bot token accepted)"
+            return "unrestricted", "Telegram getMe succeeded (bot token accepted)"
         if "unauthorized" in bl or status == 401:
             return "invalid", "Telegram reported unauthorized"
         return "unknown", "Telegram getMe HTTP %d" % status
@@ -951,7 +963,7 @@ class BurpExtender(IBurpExtender, IScannerCheck):
         if status is None:
             return "unknown", "No response from Discord"
         if status == 200 and '"id"' in body and '"username"' in body:
-            return "valid", "Discord /users/@me returned user info (bot token accepted)"
+            return "unrestricted", "Discord /users/@me returned user info (bot token accepted)"
         if status in (401, 403):
             return "invalid", "Discord returned %d (unauthorized)" % status
         return "unknown", "Discord /users/@me HTTP %d" % status
@@ -964,7 +976,7 @@ class BurpExtender(IBurpExtender, IScannerCheck):
         if status is None:
             return "unknown", "No response from NPM registry"
         if status == 200 and '"username"' in body:
-            return "valid", "NPM /-/whoami returned username (token accepted)"
+            return "unrestricted", "NPM /-/whoami returned username (token accepted)"
         if status in (401, 403):
             return "invalid", "NPM returned %d (unauthorized)" % status
         return "unknown", "NPM /-/whoami HTTP %d" % status
@@ -1009,7 +1021,7 @@ class BurpExtender(IBurpExtender, IScannerCheck):
         if status is None:
             return "unknown", "No response from Zapier webhook URL"
         if 200 <= status < 300:
-            return "valid", "Zapier webhook URL responded with HTTP %d to POST JSON" % status
+            return "unrestricted", "Zapier webhook URL responded with HTTP %d to POST JSON" % status
         if status == 404:
             return "invalid", "Zapier webhook URL returned 404"
         return "unknown", "Zapier webhook URL returned HTTP %d" % status
@@ -1033,7 +1045,7 @@ class BurpExtender(IBurpExtender, IScannerCheck):
         if status is None:
             return "unknown", "No response from PagerDuty"
         if status == 200 and '"schedules"' in body:
-            return "valid", "PagerDuty schedules endpoint returned data (token accepted)"
+            return "unrestricted", "PagerDuty schedules endpoint returned data (token accepted)"
         if status in (401, 403):
             return "invalid", "PagerDuty returned %d (unauthorized)" % status
         return "unknown", "PagerDuty schedules HTTP %d" % status
@@ -1064,7 +1076,7 @@ class BurpExtender(IBurpExtender, IScannerCheck):
         if status is None:
             return "unknown", "No response from WakaTime"
         if status == 200 and '"data"' in body:
-            return "valid", "WakaTime /users/current API returned data (api_key accepted)"
+            return "unrestricted", "WakaTime /users/current API returned data (api_key accepted)"
         if status in (401, 403):
             return "invalid", "WakaTime returned %d (unauthorized)" % status
         return "unknown", "WakaTime /users/current HTTP %d" % status
@@ -1087,7 +1099,7 @@ class BurpExtender(IBurpExtender, IScannerCheck):
         if status is None:
             return "unknown", "No response from New Relic"
         if status == 200 and '"applications"' in body:
-            return "valid", "New Relic applications API returned data (key accepted)"
+            return "unrestricted", "New Relic applications API returned data (key accepted)"
         if status in (401, 403):
             return "invalid", "New Relic returned %d (unauthorized)" % status
         return "unknown", "New Relic /v2/applications HTTP %d" % status
