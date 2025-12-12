@@ -2,7 +2,7 @@
 
 APIKnum++ is a Burp Suite extension (Jython) that passively and actively scans HTTP traffic for API keys and tokens, validates them against their upstream providers where possible, and reports potential exposures directly in Burp.
 
-It is based on patterns and validation ideas from the excellent https://github.com/streaak/keyhacks repository, extended and adapted for Burp.
+Some key identification and validation patterns used in the extension are based on the [streeak/keyhacks](https://github.com/streaak/keyhacks) repository, extended and adapted for Burp.
 
 ## Features
 
