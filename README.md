@@ -20,7 +20,7 @@ GoogAPIKnum is a command‑line tool for enumerating authorization controls of G
 
 ### Clone the repository
 ```bash
-git clone https://github.com/<your-user>/GoogAPIKnum.git
+git clone https://github.com/MishelB-CG/GoogAPIKnum.git
 cd GoogAPIKnum
 ```
 
