@@ -239,6 +239,17 @@ SERVICES = [
 
 # ------------- Helper functions ------------- #
 
+def generate_random_domain():
+    """
+    Generate a random 24-character .com domain.
+    Format: <20 random chars>.com (20 + 4 = 24 chars total)
+    """
+    import string
+    chars = string.ascii_lowercase + string.digits
+    random_part = ''.join(random.choice(chars) for _ in range(20))
+    return f"{random_part}.com"
+
+
 def build_headers(origin=None, referer=None):
     headers = {
         "User-Agent": "Google-API-Key-Access-Checker/1.0",
@@ -713,6 +724,12 @@ Examples:
     origin = args.origin
     referer = args.referer
     out_format = args.format
+
+    # If neither origin nor referer provided, generate a random domain for both
+    if not origin and not referer:
+        random_domain = f"https://{generate_random_domain()}"
+        origin = random_domain
+        referer = random_domain
 
     headers = build_headers(origin=origin, referer=referer)
 
