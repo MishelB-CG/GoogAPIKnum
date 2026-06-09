@@ -67,6 +67,19 @@ python -m googapi-knum <API_KEY>
 python -m googapi-knum <API_KEY> -O https://attacker.example -R https://attacker.example/page
 ```
 
+### Route traffic through a proxy
+```bash
+python -m googapi-knum <API_KEY> --proxy http://127.0.0.1:8080
+```
+
+For intercepting HTTPS proxies such as Burp, the tool automatically retries proxied
+requests with certificate verification disabled when proxy TLS interception is detected.
+
+### Enable verbose output
+```bash
+python -m googapi-knum <API_KEY> --verbose
+```
+
 ### Export JSON/CSV/TXT output
 ```bash
 python -m googapi-knum <API_KEY> -f json --out results.json

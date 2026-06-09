@@ -97,143 +97,65 @@ HTML_TEMPLATE = """\
 """
 
 SERVICES = [
+
     # --- MAPS PLATFORM (HTTP-based) ---
-    {
-        "name": "Maps Geocoding API",
-        "url": (
-            "https://maps.googleapis.com/maps/api/geocode/json"
-            "?address=New+York&key={key}"
-        ),
-        "type": "http",
-    },
-    {
-        "name": "Maps Directions API",
-        "url": (
-            "https://maps.googleapis.com/maps/api/directions/json"
-            "?origin=Toronto&destination=Montreal&key={key}"
-        ),
-        "type": "http",
-    },
-    {
-        "name": "Maps Distance Matrix API",
-        "url": (
-            "https://maps.googleapis.com/maps/api/distancematrix/json"
-            "?origins=Seattle&destinations=Portland&key={key}"
-        ),
-        "type": "http",
-    },
-    {
-        "name": "Maps Elevation API",
-        "url": (
-            "https://maps.googleapis.com/maps/api/elevation/json"
-            "?locations=40.714728,-73.998672&key={key}"
-        ),
-        "type": "http",
-    },
-    {
-        "name": "Maps Time Zone API",
-        "url": (
-            "https://maps.googleapis.com/maps/api/timezone/json"
-            "?location=40.689247,-74.044502&timestamp=1609459200&key={key}"
-        ),
-        "type": "http",
-    },
-    {
-        "name": "Maps Places Text Search API",
-        "url": (
-            "https://maps.googleapis.com/maps/api/place/textsearch/json"
-            "?query=Googleplex&key={key}"
-        ),
-        "type": "http",
-    },
-    {
-        "name": "Maps Places Details API",
-        "url": (
-            "https://maps.googleapis.com/maps/api/place/details/json"
-            "?place_id=ChIJE9on3F3HwoAR9AhGJW_fL-I&key={key}"
-        ),
-        "type": "http",
-    },
-    {
-        "name": "Maps Static API",
-        "url": (
-            "https://maps.googleapis.com/maps/api/staticmap"
-            "?center=New+York,NY&zoom=13&size=600x300&key={key}"
-        ),
-        "type": "http",
-    },
-    {
-        "name": "Street View Static API",
-        "url": (
-            "https://maps.googleapis.com/maps/api/streetview"
-            "?size=600x300&location=40.689247,-74.044502&key={key}"
-        ),
-        "type": "http",
-    },
+    {"name": "Maps Geocoding API", "url": "https://maps.googleapis.com/maps/api/geocode/json?address=New+York&key={key}", "type": "http"},
+    {"name": "Maps Directions API", "url": "https://maps.googleapis.com/maps/api/directions/json?origin=Toronto&destination=Montreal&key={key}", "type": "http"},
+    {"name": "Maps Distance Matrix API", "url": "https://maps.googleapis.com/maps/api/distancematrix/json?origins=Seattle&destinations=Portland&key={key}", "type": "http"},
+    {"name": "Maps Elevation API", "url": "https://maps.googleapis.com/maps/api/elevation/json?locations=40.714728,-73.998672&key={key}", "type": "http"},
+    {"name": "Maps Time Zone API", "url": "https://maps.googleapis.com/maps/api/timezone/json?location=40.689247,-74.044502&timestamp=1609459200&key={key}", "type": "http"},
+    {"name": "Maps Places Text Search API", "url": "https://maps.googleapis.com/maps/api/place/textsearch/json?query=Googleplex&key={key}", "type": "http"},
+    {"name": "Maps Places Details API", "url": "https://maps.googleapis.com/maps/api/place/details/json?place_id=ChIJE9on3F3HwoAR9AhGJW_fL-I&key={key}", "type": "http"},
+    {"name": "Maps Static API", "url": "https://maps.googleapis.com/maps/api/staticmap?center=New+York,NY&zoom=13&size=600x300&key={key}", "type": "http"},
+    {"name": "Street View Static API", "url": "https://maps.googleapis.com/maps/api/streetview?size=600x300&location=40.689247,-74.044502&key={key}", "type": "http"},
+    {"name": "Map Tiles API", "url": "https://tile.googleapis.com/v1/tiles/z/x/y?key={key}", "type": "http"},
+    {"name": "Routes API (Compute Routes)", "url": "https://routes.googleapis.com/directions/v2:computeRoutes?key={key}", "type": "http"},
+    {"name": "Routes API (Route Matrix)", "url": "https://routes.googleapis.com/distanceMatrix/v2:computeRouteMatrix?key={key}", "type": "http"},
+    {"name": "Geolocation API", "url": "https://www.googleapis.com/geolocation/v1/geolocate?key={key}", "type": "http"},
+    {"name": "Roads API", "url": "https://roads.googleapis.com/v1/snapToRoads?path=40.714728,-73.998672|40.714728,-73.998672&key={key}", "type": "http"},
+    {"name": "Elevation API", "url": "https://maps.googleapis.com/maps/api/elevation/json?locations=40.714728,-73.998672&key={key}", "type": "http"},
+    {"name": "Address Validation API", "url": "https://addressvalidation.googleapis.com/v1:validateAddress?key={key}", "type": "http"},
 
     # --- MAPS JS (headless browser test) ---
-    {
-        "name": "Maps JavaScript API",
-        "url": (
-            "https://maps.googleapis.com/maps/api/js"
-            "?key={key}&callback=initMap"
-        ),
-        "type": "maps_js",  # special case
-    },
+    {"name": "Maps JavaScript API", "url": "https://maps.googleapis.com/maps/api/js?key={key}&callback=initMap", "type": "maps_js"},
 
-    # --- PUBLIC DATA APIS ---
-    {
-        "name": "YouTube Data API v3",
-        "url": (
-            "https://www.googleapis.com/youtube/v3/search"
-            "?part=snippet&q=test&type=video&maxResults=1&key={key}"
-        ),
-        "type": "http",
-    },
-    {
-        "name": "Google Books API",
-        "url": (
-            "https://www.googleapis.com/books/v1/volumes"
-            "?q=harry+potter&maxResults=1&key={key}"
-        ),
-        "type": "http",
-    },
-    {
-        "name": "Civic Information API",
-        "url": "https://www.googleapis.com/civicinfo/v2/elections?key={key}",
-        "type": "http",
-    },
-    {
-        "name": "Safe Browsing API",
-        "url": "https://safebrowsing.googleapis.com/v4/threatLists?key={key}",
-        "type": "http",
-    },
-    {
-        "name": "Knowledge Graph Search API",
-        "url": (
-            "https://kgsearch.googleapis.com/v1/entities:search"
-            "?query=Taylor+Swift&limit=1&indent=True&key={key}"
-        ),
-        "type": "http",
-    },
-    {
-        "name": "Google Fonts API",
-        "url": (
-            "https://www.googleapis.com/webfonts/v1/webfonts"
-            "?sort=popularity&key={key}"
-        ),
-        "type": "http",
-    },
+    # --- PLACES (New) ---
+    {"name": "Places API (New) - Nearby Search", "url": "https://places.googleapis.com/v1/places:searchNearby?key={key}", "type": "http"},
+    {"name": "Places API (New) - Text Search", "url": "https://places.googleapis.com/v1/places:searchText?key={key}", "type": "http"},
+    {"name": "Places API (New) - Place Details", "url": "https://places.googleapis.com/v1/places/ChIJN1t_tDeuEmsRUsoyG83frY4?key={key}", "type": "http"},
+    {"name": "Place Autocomplete API", "url": "https://maps.googleapis.com/maps/api/place/autocomplete/json?input=Googleplex&key={key}", "type": "http"},
+    {"name": "Reverse Geocoding API", "url": "https://maps.googleapis.com/maps/api/geocode/json?latlng=40.714728,-73.998672&key={key}", "type": "http"},
 
-    # --- MACHINE LEARNING / TRANSLATION ---
-    {
-        "name": "Cloud Translation API v2",
-        "url": (
-            "https://translation.googleapis.com/language/translate/v2"
-            "?q=Hello+world&target=es&format=text&key={key}"
-        ),
-        "type": "http",
-    },
+    # --- YOUTUBE & SEARCH ---
+    {"name": "YouTube Data API v3", "url": "https://www.googleapis.com/youtube/v3/search?part=snippet&q=test&type=video&maxResults=1&key={key}", "type": "http"},
+    {"name": "Custom Search JSON API", "url": "https://www.googleapis.com/customsearch/v1?q=test&key={key}", "type": "http"},
+    {"name": "Programmable Search Engine API", "url": "https://cse.googleapis.com/cse/v1?key={key}", "type": "http"},
+
+    # --- FIREBASE ---
+    # These require custom POST logic and response parsing for security checks
+    {"name": "Firebase Identity Toolkit API", "url": "https://identitytoolkit.googleapis.com/v1/accounts:signUp?key={key}", "type": "firebase_identity_toolkit"},
+    {"name": "Firebase Installations API", "url": "https://firebaseinstallations.googleapis.com/v1/projects/-/installations?key={key}", "type": "firebase_installations"},
+    {"name": "Firebase Authentication REST API", "url": "https://www.googleapis.com/identitytoolkit/v3/relyingparty/signupNewUser?key={key}", "type": "firebase_auth_rest"},
+    {"name": "Firebase Cloud Messaging (legacy HTTP API)", "url": "https://fcm.googleapis.com/fcm/send?key={key}", "type": "firebase_fcm"},
+    {"name": "Firebase App Check API", "url": "https://firebaseappcheck.googleapis.com/v1/projects/-/apps/-:exchangeDebugToken?key={key}", "type": "firebase_app_check"},
+
+    # --- GEMINI & VERTEX AI ---
+    {"name": "Gemini API (Google AI Studio)", "url": "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key={key}", "type": "gemini"},
+    {"name": "Vertex AI (public inference)", "url": "https://us-central1-aiplatform.googleapis.com/v1/projects/vertex-ai/locations/us-central1/publishers/google/models/text-bison:predict?key={key}", "type": "vertex_ai"},
+
+    # --- CLOUD AI/ML APIs ---
+    {"name": "Cloud Vision API", "url": "https://vision.googleapis.com/v1/images:annotate?key={key}", "type": "cloud_vision"},
+    {"name": "Cloud Translation API v2", "url": "https://translation.googleapis.com/language/translate/v2?q=Hello+world&target=es&format=text&key={key}", "type": "http"},
+    {"name": "Cloud Speech-to-Text API", "url": "https://speech.googleapis.com/v1/speech:recognize?key={key}", "type": "cloud_speech"},
+    {"name": "Cloud Text-to-Speech API", "url": "https://texttospeech.googleapis.com/v1/text:synthesize?key={key}", "type": "cloud_tts"},
+    {"name": "Cloud Natural Language API", "url": "https://language.googleapis.com/v1/documents:analyzeEntities?key={key}", "type": "cloud_nlp"},
+
+    # --- OTHER PUBLIC DATA APIS ---
+    {"name": "Google Books API", "url": "https://www.googleapis.com/books/v1/volumes?q=harry+potter&maxResults=1&key={key}", "type": "http"},
+    {"name": "Civic Information API", "url": "https://www.googleapis.com/civicinfo/v2/elections?key={key}", "type": "http"},
+    {"name": "Safe Browsing API", "url": "https://safebrowsing.googleapis.com/v4/threatLists?key={key}", "type": "http"},
+    {"name": "Knowledge Graph Search API", "url": "https://kgsearch.googleapis.com/v1/entities:search?query=Taylor+Swift&limit=1&indent=True&key={key}", "type": "http"},
+    {"name": "Google Fonts API", "url": "https://www.googleapis.com/webfonts/v1/webfonts?sort=popularity&key={key}", "type": "http"},
 ]
 
 
@@ -250,6 +172,11 @@ def generate_random_domain():
     return f"{random_part}.com"
 
 
+def verbose_print(verbose, msg):
+    if verbose:
+        print(f"{DIM}[VERBOSE]{RESET} {msg}")
+
+
 def build_headers(origin=None, referer=None):
     headers = {
         "User-Agent": "Google-API-Key-Access-Checker/1.0",
@@ -259,6 +186,61 @@ def build_headers(origin=None, referer=None):
     if referer:
         headers["Referer"] = referer
     return headers
+
+
+def send_request(
+    method,
+    url,
+    headers,
+    proxies=None,
+    json=None,
+    timeout=TIMEOUT,
+    verbose=False,
+    verify=True,
+):
+    verbose_print(verbose, f"Request: {method} {url}")
+    verbose_print(verbose, f"Headers: {headers}")
+    if proxy := proxies and (proxies.get("http") or proxies.get("https")):
+        verbose_print(verbose, f"Proxy: {proxy}")
+    if json is not None:
+        verbose_print(verbose, f"JSON payload: {json}")
+
+    verbose_print(verbose, f"TLS verify: {verify}")
+
+    def do_request(active_verify):
+        if method == "GET":
+            return requests.get(
+                url,
+                headers=headers,
+                timeout=timeout,
+                proxies=proxies,
+                verify=active_verify,
+            )
+        return requests.post(
+            url,
+            headers=headers,
+            json=json,
+            timeout=timeout,
+            proxies=proxies,
+            verify=active_verify,
+        )
+
+    try:
+        resp = do_request(verify)
+    except requests.exceptions.SSLError:
+        if not proxies or verify is not True:
+            raise
+        verbose_print(verbose, "TLS verification failed through proxy; retrying with TLS verification disabled.")
+        requests.packages.urllib3.disable_warnings(
+            requests.packages.urllib3.exceptions.InsecureRequestWarning
+        )
+        resp = do_request(False)
+
+    verbose_print(verbose, f"Response: {resp.status_code} {resp.reason}")
+    content = resp.text or ""
+    if verbose and content:
+        verbose_print(verbose, f"Response body: {content[:1000]}")
+    return resp
 
 
 class ReusableTCPServer(socketserver.TCPServer):
@@ -317,7 +299,7 @@ def start_http_server(root_dir, max_tries=20):
     return httpd, port
 
 
-def check_maps_js_in_browser(api_key, timeout_ms=15000):
+def check_maps_js_in_browser(api_key, timeout_ms=15000, proxy=None, verbose=False, ignore_https_errors=False):
     """
     Use headless Chromium via Playwright to actually load Maps JS and see
     whether it initializes a map (MAPS_LOADED) or logs an error.
@@ -345,8 +327,10 @@ def check_maps_js_in_browser(api_key, timeout_ms=15000):
 
     try:
         with sync_playwright() as p:
-            browser = p.chromium.launch(headless=True)
-            page = browser.new_page()
+            verbose_print(verbose, f"Launching Playwright Chromium with proxy={proxy}")
+            browser = p.chromium.launch(headless=True, proxy={"server": proxy} if proxy else None)
+            context = browser.new_context(ignore_https_errors=ignore_https_errors)
+            page = context.new_page()
 
             def on_console(msg):
                 # msg.text is a property in Playwright's sync API
@@ -359,6 +343,7 @@ def check_maps_js_in_browser(api_key, timeout_ms=15000):
 
             try:
                 # 'networkidle' is brittle; use 'domcontentloaded' + explicit wait
+                verbose_print(verbose, f"Opening browser URL: {url}")
                 page.goto(url, wait_until="domcontentloaded", timeout=timeout_ms)
             except PlaywrightTimeoutError as e:
                 console_messages.append(f"[goto-timeout] {e}")
@@ -368,6 +353,7 @@ def check_maps_js_in_browser(api_key, timeout_ms=15000):
                 page.wait_for_timeout(5000)
                 maps_loaded = page.evaluate("window.MAPS_LOADED === true")
 
+            context.close()
             browser.close()
     finally:
         httpd.shutdown()
@@ -486,46 +472,41 @@ def color_for_classification(classification):
 def print_table(results):
     print()
     print(BOLD + "Results Table" + RESET)
-    print("-" * 140)
-    print(
-        f"{BOLD}{'ID':<3} {'Service':<32} {'Result':<32} {'HTTP':<6} Manual check URL{RESET}"
-    )
-    print("-" * 140)
+    print("-" * 80)
+    print(f"{BOLD}{'ID':<3} {'Service':<42} {'Result':<28} {'HTTP':<6}{RESET}")
+    print("-" * 80)
 
     for r in results:
         idx = r["index"]
-        name = (r["name"] or "")[:32]
+        name = (r["name"] or "")[:42]
         classification = r["classification"] or ""
         http_code = str(r["http_code"])
-        manual_url = r.get("manual_url") or ""
-        manual_short = shorten(manual_url, width=80, placeholder="...")
 
         color = color_for_classification(classification)
-        result_colored = f"{color}{classification}{RESET}"
+        result_padded = classification.ljust(28)
+        result_colored = f"{color}{result_padded}{RESET}"
 
         print(
             f"{idx:<3} "
-            f"{name:<32} "
-            f"{result_colored:<32} "
-            f"{http_code:<6} "
-            f"{manual_short}"
+            f"{name:<42} "
+            f"{result_colored} "
+            f"{http_code:<6}"
         )
 
-    print("-" * 140)
+    print("-" * 80)
     print()
 
 
 # ---------- Output file writers ---------- #
 
-def write_output_text(path, results, origin=None, referer=None):
+def write_output_text(path, results, origin=None, referer=None, proxy=None):
     with open(path, "w", encoding="utf-8") as f:
         f.write("Google API Key Comprehensive Access Check\n")
         f.write("=========================================\n\n")
         f.write(f"Generated at         : {datetime.utcnow().isoformat()}Z\n")
         f.write(f"Origin header used   : {origin or '(none)'}\n")
         f.write(f"Referer header used  : {referer or '(none)'}\n")
-        f.write(f"Maps JS via headless : {'yes' if HAS_PLAYWRIGHT else 'no'}\n\n")
-
+        f.write(f"Proxy used           : {proxy or '(none)'}\n")
         for r in results:
             f.write(f"[{r['index']}] {r['name']}\n")
             f.write(f"  Result : {r['classification']}\n")
@@ -535,11 +516,12 @@ def write_output_text(path, results, origin=None, referer=None):
             f.write("\n")
 
 
-def write_output_json(path, results, origin=None, referer=None):
+def write_output_json(path, results, origin=None, referer=None, proxy=None):
     data = {
         "generated_at": datetime.utcnow().isoformat() + "Z",
         "origin": origin,
         "referer": referer,
+        "proxy": proxy,
         "maps_js_headless": HAS_PLAYWRIGHT,
         "results": [
             {
@@ -557,12 +539,13 @@ def write_output_json(path, results, origin=None, referer=None):
         json.dump(data, f, indent=2)
 
 
-def write_output_csv(path, results, origin=None, referer=None):
+def write_output_csv(path, results, origin=None, referer=None, proxy=None):
     with open(path, "w", encoding="utf-8", newline="") as f:
         f.write("# Google API Key Comprehensive Access Check\n")
         f.write(f"# Generated at: {datetime.utcnow().isoformat()}Z\n")
         f.write(f"# Origin: {origin or '(none)'}\n")
         f.write(f"# Referer: {referer or '(none)'}\n")
+        f.write(f"# Proxy: {proxy or '(none)'}\n")
         f.write(f"# Maps JS via headless: {'yes' if HAS_PLAYWRIGHT else 'no'}\n")
         writer = csv.writer(f)
         writer.writerow(["index", "service", "result", "http_code", "detail", "manual_url"])
@@ -577,14 +560,14 @@ def write_output_csv(path, results, origin=None, referer=None):
             ])
 
 
-def write_output_file(path, results, origin=None, referer=None, fmt="text"):
+def write_output_file(path, results, origin=None, referer=None, proxy=None, fmt="text"):
     fmt = (fmt or "text").lower()
     if fmt == "json":
-        write_output_json(path, results, origin=origin, referer=referer)
+        write_output_json(path, results, origin=origin, referer=referer, proxy=proxy)
     elif fmt == "csv":
-        write_output_csv(path, results, origin=origin, referer=referer)
+        write_output_csv(path, results, origin=origin, referer=referer, proxy=proxy)
     else:
-        write_output_text(path, results, origin=origin, referer=referer)
+        write_output_text(path, results, origin=origin, referer=referer, proxy=proxy)
 
 
 def ensure_playwright_browsers():
@@ -685,6 +668,16 @@ Examples:
   Save machine-readable JSON:
     python google_api_key_checker.py AIzaSyYourKeyGoesHere -o results.json -f json
 
+  Route traffic through an HTTP proxy:
+    python google_api_key_checker.py AIzaSyYourKeyGoesHere \
+      --proxy http://127.0.0.1:8080 \
+      -o results.txt
+
+  Route traffic through an intercepting proxy such as Burp:
+    python google_api_key_checker.py AIzaSyYourKeyGoesHere \
+      --proxy http://127.0.0.1:8080 \
+      -v
+
   Simulate an attacker Origin/Referer for HTTP-based APIs:
     python google_api_key_checker.py AIzaSyYourKeyGoesHere \\
       -O https://evil.example \\
@@ -718,11 +711,28 @@ Examples:
         default="text",
         help="Output format for --out file (default: text)",
     )
+    parser.add_argument(
+        "--proxy",
+        help="Proxy URL to route HTTP and browser traffic through (e.g. http://127.0.0.1:8080)",
+    )
+    parser.add_argument(
+        "--insecure",
+        action="store_true",
+        help="Disable HTTPS certificate verification for all HTTP checks.",
+    )
+    parser.add_argument(
+        "-v", "--verbose",
+        action="store_true",
+        help="Enable verbose logging for requests, responses, and proxy diagnostics.",
+    )
 
     args = parser.parse_args()
     api_key = args.api_key.strip()
     origin = args.origin
     referer = args.referer
+    proxy = args.proxy
+    insecure = args.insecure
+    verbose = args.verbose
     out_format = args.format
 
     # If neither origin nor referer provided, generate a random domain for both
@@ -732,13 +742,26 @@ Examples:
         referer = random_domain
 
     headers = build_headers(origin=origin, referer=referer)
+    proxies = {"http": proxy, "https": proxy} if proxy else None
+    tls_verify = not insecure
+    if insecure:
+        requests.packages.urllib3.disable_warnings(
+            requests.packages.urllib3.exceptions.InsecureRequestWarning
+        )
 
     print(f"{BOLD}[+] Checking Google API key against {len(SERVICES)} services...{RESET}")
-    if origin or referer:
+    if origin or referer or proxy:
         print(
             f"{DIM}    Using Origin={origin or '(none)'} | "
-            f"Referer={referer or '(none)'} for HTTP-based checks{RESET}"
+            f"Referer={referer or '(none)'}{RESET}"
         )
+        if proxy:
+            print(f"{DIM}    Proxy: {proxy}{RESET}")
+            print(f"{DIM}    Proxy TLS interception will fallback to insecure verification if needed.{RESET}")
+        if insecure:
+            print(f"{YELLOW}    HTTPS certificate verification disabled (--insecure).{RESET}")
+        if verbose:
+            print(f"{DIM}    Verbose mode enabled{RESET}")
     if HAS_PLAYWRIGHT:
         print(f"{DIM}    Maps JS will be tested in a real headless browser.{RESET}")
     else:
@@ -749,41 +772,263 @@ Examples:
 
     results = []
 
+
     for idx, svc in enumerate(SERVICES, start=1):
         name = svc["name"]
         url = svc["url"].format(key=api_key)
-        manual_url = url  # includes the real key
+        manual_url = url
+        svc_type = svc.get("type", "http")
 
         print(f"{DIM}[{idx}/{len(SERVICES)}] {name}...{RESET}", end="", flush=True)
 
-        svc_type = svc.get("type", "http")
+        classification = "UNKNOWN"
+        detail = ""
+        http_code = "N/A"
 
-        if svc_type == "maps_js":
-            classification, detail = check_maps_js_in_browser(api_key)
-            http_code = "n/a"
-        else:
-            try:
-                resp = requests.get(url, headers=headers, timeout=TIMEOUT)
+        try:
+            if svc_type == "maps_js":
+                classification, detail = check_maps_js_in_browser(
+                    api_key,
+                    proxy=proxy,
+                    verbose=verbose,
+                    ignore_https_errors=bool(proxy or insecure),
+                )
+                http_code = "n/a"
+
+            elif svc_type == "firebase_identity_toolkit":
+                # Firebase Identity Toolkit: try anonymous sign-up (safe, does not require email)
+                payload = {"returnSecureToken": True}
+                resp = send_request("POST", url, headers={**headers, "Content-Type": "application/json"}, json=payload, timeout=TIMEOUT, proxies=proxies, verbose=verbose, verify=tls_verify)
+                data = resp.json() if resp.content else {}
+                if resp.status_code == 200 and "idToken" in data:
+                    classification = "ACCEPTED (anonymous sign-up allowed)"
+                    detail = "Anonymous sign-up succeeded. Key is valid and project allows registration."
+                elif resp.status_code == 400 and "error" in data:
+                    err = data["error"].get("message", "")
+                    if "API_KEY_INVALID" in err:
+                        classification = "REJECTED (invalid key)"
+                        detail = err
+                    elif "OPERATION_NOT_ALLOWED" in err:
+                        classification = "ACCEPTED (key valid, registration disabled)"
+                        detail = err
+                    else:
+                        classification = f"ERROR ({err})"
+                        detail = err
+                else:
+                    classification = f"UNKNOWN ({resp.status_code})"
+                    detail = data
+                http_code = resp.status_code
+
+            elif svc_type == "firebase_installations":
+                # Firebase Installations: try POST with dummy data
+                payload = {"appId": "1:1234567890:web:abcdef123456", "authVersion": "FIS_v2", "sdkVersion": "w:0.0.0"}
+                resp = send_request("POST", url, headers={**headers, "Content-Type": "application/json"}, json=payload, timeout=TIMEOUT, proxies=proxies, verbose=verbose, verify=tls_verify)
+                data = resp.json() if resp.content else {}
+                if resp.status_code == 200 and "fid" in data:
+                    classification = "ACCEPTED (installations allowed)"
+                    detail = "Installations API responded with FID. Key is valid."
+                elif resp.status_code == 400 and "error" in data:
+                    err = data["error"].get("message", "")
+                    if "API_KEY_INVALID" in err:
+                        classification = "REJECTED (invalid key)"
+                        detail = err
+                    else:
+                        classification = f"ERROR ({err})"
+                        detail = err
+                else:
+                    classification = f"UNKNOWN ({resp.status_code})"
+                    detail = data
+                http_code = resp.status_code
+
+            elif svc_type == "firebase_auth_rest":
+                # Firebase Auth REST: try anonymous sign-up
+                payload = {"returnSecureToken": True}
+                resp = send_request("POST", url, headers={**headers, "Content-Type": "application/json"}, json=payload, timeout=TIMEOUT, proxies=proxies, verbose=verbose, verify=tls_verify)
+                data = resp.json() if resp.content else {}
+                if resp.status_code == 200 and "idToken" in data:
+                    classification = "ACCEPTED (anonymous sign-up allowed)"
+                    detail = "Anonymous sign-up succeeded. Key is valid and project allows registration."
+                elif resp.status_code == 400 and "error" in data:
+                    err = data["error"].get("message", "")
+                    if "API_KEY_INVALID" in err:
+                        classification = "REJECTED (invalid key)"
+                        detail = err
+                    elif "OPERATION_NOT_ALLOWED" in err:
+                        classification = "ACCEPTED (key valid, registration disabled)"
+                        detail = err
+                    else:
+                        classification = f"ERROR ({err})"
+                        detail = err
+                else:
+                    classification = f"UNKNOWN ({resp.status_code})"
+                    detail = data
+                http_code = resp.status_code
+
+            elif svc_type == "firebase_fcm":
+                # FCM: try POST with dummy data
+                payload = {"registration_ids": ["dummy"]}
+                resp = send_request("POST", url, headers={**headers, "Content-Type": "application/json"}, json=payload, timeout=TIMEOUT, proxies=proxies, verbose=verbose, verify=tls_verify)
+                data = resp.json() if resp.content else {}
+                if resp.status_code == 200 and "failure" in data:
+                    classification = "ACCEPTED (key valid, FCM responded)"
+                    detail = "FCM responded. Key is valid."
+                elif resp.status_code == 401:
+                    classification = "REJECTED (invalid key)"
+                    detail = data
+                else:
+                    classification = f"UNKNOWN ({resp.status_code})"
+                    detail = data
+                http_code = resp.status_code
+
+            elif svc_type == "firebase_app_check":
+                # App Check: try POST with dummy data
+                payload = {"debugToken": "dummy"}
+                resp = send_request("POST", url, headers={**headers, "Content-Type": "application/json"}, json=payload, timeout=TIMEOUT, proxies=proxies, verbose=verbose, verify=tls_verify)
+                data = resp.json() if resp.content else {}
+                if resp.status_code == 200:
+                    classification = "ACCEPTED (key valid, App Check responded)"
+                    detail = "App Check responded. Key is valid."
+                elif resp.status_code == 400 and "error" in data:
+                    err = data["error"].get("message", "")
+                    if "API_KEY_INVALID" in err:
+                        classification = "REJECTED (invalid key)"
+                        detail = err
+                    else:
+                        classification = f"ERROR ({err})"
+                        detail = err
+                else:
+                    classification = f"UNKNOWN ({resp.status_code})"
+                    detail = data
+                http_code = resp.status_code
+
+            elif svc_type == "gemini":
+                # Gemini API: try generateContent with a minimal prompt.
+                payload = {
+                    "contents": [{"role": "user", "parts": [{"text": "Hello"}]}],
+                    "generationConfig": {"maxOutputTokens": 1},
+                }
+                resp = send_request("POST", url, headers={**headers, "Content-Type": "application/json"}, json=payload, timeout=TIMEOUT, proxies=proxies, verbose=verbose, verify=tls_verify)
+                data = resp.json() if resp.content else {}
+                if resp.status_code == 200 and "candidates" in data:
+                    classification = "ACCEPTED (key valid, Gemini responded)"
+                    detail = "Gemini responded. Key is valid."
+                elif resp.status_code == 403 and "PERMISSION_DENIED" in str(data):
+                    classification = "ACCEPTED (key valid, but not allowed for this model)"
+                    detail = data
+                elif resp.status_code == 400 and "API_KEY_INVALID" in str(data):
+                    classification = "REJECTED (invalid key)"
+                    detail = data
+                else:
+                    classification = f"UNKNOWN ({resp.status_code})"
+                    detail = data
+                http_code = resp.status_code
+
+            elif svc_type == "vertex_ai":
+                # Vertex AI: try POST with dummy instance
+                payload = {"instances": [{"content": "Hello"}]}
+                resp = send_request("POST", url, headers={**headers, "Content-Type": "application/json"}, json=payload, timeout=TIMEOUT, proxies=proxies, verbose=verbose, verify=tls_verify)
+                data = resp.json() if resp.content else {}
+                if resp.status_code == 200 and "predictions" in data:
+                    classification = "ACCEPTED (key valid, Vertex AI responded)"
+                    detail = "Vertex AI responded. Key is valid."
+                elif resp.status_code == 403 and "PERMISSION_DENIED" in str(data):
+                    classification = "ACCEPTED (key valid, but not allowed for this model)"
+                    detail = data
+                elif resp.status_code == 400 and "API_KEY_INVALID" in str(data):
+                    classification = "REJECTED (invalid key)"
+                    detail = data
+                else:
+                    classification = f"UNKNOWN ({resp.status_code})"
+                    detail = data
+                http_code = resp.status_code
+
+            elif svc_type == "cloud_vision":
+                # Vision API: try POST with dummy image
+                payload = {"requests": [{"image": {"content": ""}, "features": [{"type": "LABEL_DETECTION"}]}]}
+                resp = send_request("POST", url, headers={**headers, "Content-Type": "application/json"}, json=payload, timeout=TIMEOUT, proxies=proxies, verbose=verbose, verify=tls_verify)
+                data = resp.json() if resp.content else {}
+                if resp.status_code == 200 and "responses" in data:
+                    classification = "ACCEPTED (key valid, Vision responded)"
+                    detail = "Vision API responded. Key is valid."
+                elif resp.status_code == 400 and "API_KEY_INVALID" in str(data):
+                    classification = "REJECTED (invalid key)"
+                    detail = data
+                else:
+                    classification = f"UNKNOWN ({resp.status_code})"
+                    detail = data
+                http_code = resp.status_code
+
+            elif svc_type == "cloud_speech":
+                # Speech-to-Text: try POST with dummy config
+                payload = {"config": {"encoding": "LINEAR16", "languageCode": "en-US"}, "audio": {"content": ""}}
+                resp = send_request("POST", url, headers={**headers, "Content-Type": "application/json"}, json=payload, timeout=TIMEOUT, proxies=proxies, verbose=verbose, verify=tls_verify)
+                data = resp.json() if resp.content else {}
+                if resp.status_code == 200 and "results" in data:
+                    classification = "ACCEPTED (key valid, Speech-to-Text responded)"
+                    detail = "Speech-to-Text responded. Key is valid."
+                elif resp.status_code == 400 and "API_KEY_INVALID" in str(data):
+                    classification = "REJECTED (invalid key)"
+                    detail = data
+                else:
+                    classification = f"UNKNOWN ({resp.status_code})"
+                    detail = data
+                http_code = resp.status_code
+
+            elif svc_type == "cloud_tts":
+                # Text-to-Speech: try POST with dummy input
+                payload = {"input": {"text": "Hello"}, "voice": {"languageCode": "en-US", "ssmlGender": "NEUTRAL"}, "audioConfig": {"audioEncoding": "MP3"}}
+                resp = send_request("POST", url, headers={**headers, "Content-Type": "application/json"}, json=payload, timeout=TIMEOUT, proxies=proxies, verbose=verbose, verify=tls_verify)
+                data = resp.json() if resp.content else {}
+                if resp.status_code == 200 and "audioContent" in data:
+                    classification = "ACCEPTED (key valid, TTS responded)"
+                    detail = "Text-to-Speech responded. Key is valid."
+                elif resp.status_code == 400 and "API_KEY_INVALID" in str(data):
+                    classification = "REJECTED (invalid key)"
+                    detail = data
+                else:
+                    classification = f"UNKNOWN ({resp.status_code})"
+                    detail = data
+                http_code = resp.status_code
+
+            elif svc_type == "cloud_nlp":
+                # Natural Language API: try POST with dummy document
+                payload = {"document": {"type": "PLAIN_TEXT", "content": "Hello world"}, "encodingType": "UTF8"}
+                resp = send_request("POST", url, headers={**headers, "Content-Type": "application/json"}, json=payload, timeout=TIMEOUT, proxies=proxies, verbose=verbose, verify=tls_verify)
+                data = resp.json() if resp.content else {}
+                if resp.status_code == 200 and "entities" in data:
+                    classification = "ACCEPTED (key valid, NLP responded)"
+                    detail = "Natural Language API responded. Key is valid."
+                elif resp.status_code == 400 and "API_KEY_INVALID" in str(data):
+                    classification = "REJECTED (invalid key)"
+                    detail = data
+                else:
+                    classification = f"UNKNOWN ({resp.status_code})"
+                    detail = data
+                http_code = resp.status_code
+
+            else:
+                # Default: GET request
+                resp = send_request("GET", url, headers=headers, timeout=TIMEOUT, proxies=proxies, verbose=verbose, verify=tls_verify)
                 classification, detail = interpret_http_response(resp)
                 http_code = resp.status_code
-            except Exception as e:
-                classification = "NETWORK ERROR"
-                detail = str(e)
-                http_code = "N/A"
+
+        except Exception as e:
+            classification = "NETWORK ERROR"
+            detail = f"{type(e).__name__}: {e}"
+            verbose_print(verbose, f"Network exception: {detail}")
+            http_code = "N/A"
 
         color = color_for_classification(classification)
         print(f" {color}{classification}{RESET}")
 
-        results.append(
-            {
-                "index": idx,
-                "name": name,
-                "classification": classification,
-                "http_code": http_code,
-                "detail": detail,
-                "manual_url": manual_url,
-            }
-        )
+        results.append({
+            "index": idx,
+            "name": name,
+            "classification": classification,
+            "http_code": http_code,
+            "detail": detail,
+            "manual_url": manual_url,
+        })
 
     print_table(results)
 
@@ -796,7 +1041,7 @@ Examples:
     )
 
     if args.out:
-        write_output_file(args.out, results, origin=origin, referer=referer, fmt=out_format)
+        write_output_file(args.out, results, origin=origin, referer=referer, proxy=proxy, fmt=out_format)
         print(f"{GREEN}[+] Results saved to {args.out} (format: {out_format}){RESET}\n")
 
 
