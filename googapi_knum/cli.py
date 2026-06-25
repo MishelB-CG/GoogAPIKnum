@@ -909,14 +909,23 @@ Examples:
                 }
                 resp = send_request("POST", url, headers={**headers, "Content-Type": "application/json"}, json=payload, timeout=TIMEOUT, proxies=proxies, verbose=verbose, verify=tls_verify)
                 data = resp.json() if resp.content else {}
+                data_text = str(data).lower()
                 if resp.status_code == 200 and "candidates" in data:
                     classification = "ACCEPTED (key valid, Gemini responded)"
                     detail = "Gemini responded. Key is valid."
-                elif resp.status_code == 403 and "PERMISSION_DENIED" in str(data):
-                    classification = "ACCEPTED (key valid, but not allowed for this model)"
-                    detail = data
                 elif resp.status_code == 400 and "API_KEY_INVALID" in str(data):
                     classification = "REJECTED (invalid key)"
+                    detail = data
+                elif resp.status_code == 403 and (
+                    "api_key_service_blocked" in data_text
+                    or "requests to this api" in data_text
+                    or " are blocked" in data_text
+                    or "api is restricted" in data_text
+                ):
+                    classification = "ACCEPTED (blocked by key API restrictions)"
+                    detail = data
+                elif resp.status_code == 403 and "PERMISSION_DENIED" in str(data):
+                    classification = "ACCEPTED (permission denied)"
                     detail = data
                 else:
                     classification = f"UNKNOWN ({resp.status_code})"
