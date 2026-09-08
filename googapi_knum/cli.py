@@ -32,6 +32,7 @@ import random
 import socket
 from datetime import datetime
 from textwrap import shorten, dedent
+from urllib.parse import quote
 
 
 import requests
@@ -132,10 +133,14 @@ SERVICES = [
     {"name": "Programmable Search Engine API", "url": "https://cse.googleapis.com/cse/v1?key={key}", "type": "http"},
 
     # --- FIREBASE ---
-    # These require custom POST logic and response parsing for security checks
-    {"name": "Firebase Identity Toolkit API", "url": "https://identitytoolkit.googleapis.com/v1/accounts:signUp?key={key}", "type": "firebase_identity_toolkit"},
+    # These require custom logic and response parsing for security checks.
+    {"name": "Firebase Identity Toolkit Public Config", "url": "https://identitytoolkit.googleapis.com/v1/projects?key={key}", "type": "firebase_public_config"},
+    {"name": "Firebase Auth Anonymous Registration", "url": "https://identitytoolkit.googleapis.com/v1/accounts:signUp?key={key}", "type": "firebase_auth_signup"},
+    {"name": "Firebase Auth Email/Password Login", "url": "https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key={key}", "type": "firebase_auth_password_login"},
+    {"name": "Firebase Auth Provider/User Lookup", "url": "https://identitytoolkit.googleapis.com/v1/accounts:createAuthUri?key={key}", "type": "firebase_auth_provider_lookup"},
+    {"name": "Firebase Auth Account Lookup", "url": "https://identitytoolkit.googleapis.com/v1/accounts:lookup?key={key}", "type": "firebase_auth_account_lookup"},
+    {"name": "Firebase Remote Config Fetch", "url": "https://firebaseremoteconfig.googleapis.com/v1/projects/<project>/namespaces/firebase:fetch?key={key}", "type": "firebase_remote_config"},
     {"name": "Firebase Installations API", "url": "https://firebaseinstallations.googleapis.com/v1/projects/-/installations?key={key}", "type": "firebase_installations"},
-    {"name": "Firebase Authentication REST API", "url": "https://www.googleapis.com/identitytoolkit/v3/relyingparty/signupNewUser?key={key}", "type": "firebase_auth_rest"},
     {"name": "Firebase Cloud Messaging (legacy HTTP API)", "url": "https://fcm.googleapis.com/fcm/send?key={key}", "type": "firebase_fcm"},
     {"name": "Firebase App Check API", "url": "https://firebaseappcheck.googleapis.com/v1/projects/-/apps/-:exchangeDebugToken?key={key}", "type": "firebase_app_check"},
 
@@ -241,6 +246,247 @@ def send_request(
     if verbose and content:
         verbose_print(verbose, f"Response body: {content[:1000]}")
     return resp
+
+
+def response_json(resp):
+    if not getattr(resp, "content", None):
+        return {}
+    try:
+        return resp.json()
+    except ValueError:
+        return {"_raw": resp.text or ""}
+
+
+def compact_json_text(data):
+    if isinstance(data, (dict, list)):
+        return json.dumps(data, sort_keys=True)
+    return str(data)
+
+
+def firebase_error_message(data):
+    if not isinstance(data, dict):
+        return ""
+
+    err = data.get("error")
+    if isinstance(err, dict):
+        return str(err.get("message") or err.get("status") or "")
+    if isinstance(err, str):
+        return err
+    return ""
+
+
+def firebase_error_text(data):
+    if not isinstance(data, dict):
+        return str(data)
+
+    err = data.get("error")
+    pieces = [firebase_error_message(data)]
+    if isinstance(err, dict):
+        pieces.extend(str(err.get(name) or "") for name in ("status", "code"))
+    pieces.append(compact_json_text(data))
+    return " ".join(pieces)
+
+
+def firebase_key_is_invalid(data):
+    text = firebase_error_text(data).upper()
+    return (
+        "API_KEY_INVALID" in text
+        or "INVALID_API_KEY" in text
+        or "API KEY NOT VALID" in text
+    )
+
+
+def classify_http_403(data):
+    text = compact_json_text(data).lower()
+    if (
+        "api_key_service_blocked" in text
+        or "requests to this api" in text
+        or " are blocked" in text
+        or "api is restricted" in text
+    ):
+        return "REJECTED (blocked by key API restrictions)", data
+    if "permission_denied" in text or "permission denied" in text:
+        return "REJECTED (permission denied)", data
+    return "REJECTED (HTTP 403)", data
+
+
+def random_probe_email():
+    chars = "abcdefghijklmnopqrstuvwxyz0123456789"
+    token = "".join(random.choice(chars) for _ in range(16))
+    return f"googapi-knum-{token}@example.invalid"
+
+
+def random_app_instance_id():
+    chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+    return "".join(random.choice(chars) for _ in range(22))
+
+
+def summarize_firebase_public_config(data):
+    parts = []
+
+    project_id = data.get("projectId")
+    if project_id:
+        parts.append(f"projectId={project_id}")
+
+    domains = data.get("authorizedDomains")
+    if isinstance(domains, list):
+        shown = ", ".join(str(domain) for domain in domains[:5])
+        if len(domains) > 5:
+            shown += f", ... (+{len(domains) - 5} more)"
+        parts.append(f"authorizedDomains=[{shown}]")
+
+    dynamic_links_domain = data.get("dynamicLinksDomain")
+    if dynamic_links_domain:
+        parts.append(f"dynamicLinksDomain={dynamic_links_domain}")
+
+    public_flags = []
+    for name in ("allowPasswordUser", "enableAnonymousUser", "useEmailSending"):
+        if name in data:
+            public_flags.append(f"{name}={data[name]}")
+    if public_flags:
+        parts.append(", ".join(public_flags))
+
+    return "; ".join(parts) or data
+
+
+def interpret_firebase_public_config(resp):
+    data = response_json(resp)
+    if resp.status_code == 200 and isinstance(data, dict):
+        return "ACCEPTED (public config exposed)", summarize_firebase_public_config(data), data
+    if firebase_key_is_invalid(data):
+        return "REJECTED (invalid key)", firebase_error_message(data) or data, data
+    if resp.status_code == 403:
+        classification, detail = classify_http_403(data)
+        return classification, detail, data
+    return f"UNKNOWN ({resp.status_code})", data, data
+
+
+def interpret_firebase_signup(resp):
+    data = response_json(resp)
+    err = firebase_error_message(data)
+    err_upper = err.upper()
+
+    if resp.status_code == 200 and "idToken" in data:
+        return "ACCEPTED (anonymous sign-up allowed)", "Anonymous sign-up succeeded. Key is valid and project allows registration.", data
+    if firebase_key_is_invalid(data):
+        return "REJECTED (invalid key)", err or data, data
+    if resp.status_code == 403:
+        classification, detail = classify_http_403(data)
+        return classification, detail, data
+    if resp.status_code == 400 and "OPERATION_NOT_ALLOWED" in err_upper:
+        return "ACCEPTED (key valid, anonymous registration disabled)", err, data
+    if resp.status_code == 400 and "ADMIN_ONLY_OPERATION" in err_upper:
+        return "ACCEPTED (key valid, registration restricted)", err, data
+    if resp.status_code == 400 and err:
+        return f"ERROR ({err})", err, data
+    return f"UNKNOWN ({resp.status_code})", data, data
+
+
+def interpret_firebase_password_login(resp):
+    data = response_json(resp)
+    err = firebase_error_message(data)
+    err_upper = err.upper()
+
+    if resp.status_code == 200 and "idToken" in data:
+        return "ACCEPTED (password login succeeded)", "Email/password login succeeded.", data
+    if firebase_key_is_invalid(data):
+        return "REJECTED (invalid key)", err or data, data
+    if resp.status_code == 403:
+        classification, detail = classify_http_403(data)
+        return classification, detail, data
+    if resp.status_code == 400 and any(marker in err_upper for marker in (
+        "EMAIL_NOT_FOUND",
+        "INVALID_LOGIN_CREDENTIALS",
+        "INVALID_PASSWORD",
+    )):
+        return "ACCEPTED (password login endpoint reachable)", err, data
+    if resp.status_code == 400 and "OPERATION_NOT_ALLOWED" in err_upper:
+        return "ACCEPTED (key valid, password login disabled)", err, data
+    if resp.status_code == 400 and err:
+        return f"ERROR ({err})", err, data
+    return f"UNKNOWN ({resp.status_code})", data, data
+
+
+def interpret_firebase_provider_lookup(resp):
+    data = response_json(resp)
+    err = firebase_error_message(data)
+
+    if resp.status_code == 200 and isinstance(data, dict):
+        registered = data.get("registered")
+        providers = data.get("allProviders") or data.get("signinMethods") or []
+        return (
+            "ACCEPTED (provider lookup reachable)",
+            f"registered={registered}; providers={providers}",
+            data,
+        )
+    if firebase_key_is_invalid(data):
+        return "REJECTED (invalid key)", err or data, data
+    if resp.status_code == 403:
+        classification, detail = classify_http_403(data)
+        return classification, detail, data
+    if resp.status_code == 400 and err:
+        return f"ERROR ({err})", err, data
+    return f"UNKNOWN ({resp.status_code})", data, data
+
+
+def interpret_firebase_account_lookup(resp, used_real_token=False):
+    data = response_json(resp)
+    err = firebase_error_message(data)
+    err_upper = err.upper()
+
+    if resp.status_code == 200 and isinstance(data, dict) and "users" in data:
+        return "ACCEPTED (account lookup allowed)", f"lookup returned {len(data.get('users') or [])} user(s)", data
+    if firebase_key_is_invalid(data):
+        return "REJECTED (invalid key)", err or data, data
+    if resp.status_code == 403:
+        classification, detail = classify_http_403(data)
+        return classification, detail, data
+    if resp.status_code == 400 and "INVALID_ID_TOKEN" in err_upper and not used_real_token:
+        return "ACCEPTED (lookup endpoint reachable; valid user token required)", err, data
+    if resp.status_code == 400 and err:
+        return f"ERROR ({err})", err, data
+    return f"UNKNOWN ({resp.status_code})", data, data
+
+
+def interpret_firebase_remote_config(resp):
+    data = response_json(resp)
+    err = firebase_error_message(data)
+    err_upper = err.upper()
+
+    if resp.status_code == 200 and isinstance(data, dict):
+        entries = data.get("entries")
+        entry_count = len(entries) if isinstance(entries, dict) else 0
+        state = data.get("state") or "OK"
+        return "ACCEPTED (Remote Config fetch allowed)", f"state={state}; entries={entry_count}", data
+    if firebase_key_is_invalid(data):
+        return "REJECTED (invalid key)", err or data, data
+    if resp.status_code == 403:
+        classification, detail = classify_http_403(data)
+        return classification, detail, data
+    if resp.status_code == 400 and any(marker in err_upper for marker in (
+        "APP_ID",
+        "APP_INSTANCE_ID",
+        "INSTANCE_ID",
+        "MISSING",
+        "INVALID_ARGUMENT",
+    )):
+        return "UNKNOWN (Remote Config needs valid app context)", err or data, data
+    if resp.status_code == 404:
+        return "UNKNOWN (Remote Config project not found)", err or data, data
+    if resp.status_code == 400 and err:
+        return f"ERROR ({err})", err, data
+    return f"UNKNOWN ({resp.status_code})", data, data
+
+
+def interpret_gemini_response(resp):
+    data = response_json(resp)
+    if resp.status_code == 200 and isinstance(data, dict) and "candidates" in data:
+        return "ACCEPTED (key valid, Gemini responded)", "Gemini responded. Key is valid."
+    if firebase_key_is_invalid(data) or (resp.status_code == 400 and "API_KEY_INVALID" in compact_json_text(data)):
+        return "REJECTED (invalid key)", data
+    if resp.status_code == 403:
+        return classify_http_403(data)
+    return f"UNKNOWN ({resp.status_code})", data
 
 
 class ReusableTCPServer(socketserver.TCPServer):
@@ -721,6 +967,14 @@ Examples:
         help="Disable HTTPS certificate verification for all HTTP checks.",
     )
     parser.add_argument(
+        "--firebase-project-id",
+        help="Firebase project ID/number to use for Remote Config fetch if it cannot be discovered.",
+    )
+    parser.add_argument(
+        "--firebase-app-id",
+        help="Firebase app ID to include in Remote Config fetch requests.",
+    )
+    parser.add_argument(
         "-v", "--verbose",
         action="store_true",
         help="Enable verbose logging for requests, responses, and proxy diagnostics.",
@@ -734,6 +988,12 @@ Examples:
     insecure = args.insecure
     verbose = args.verbose
     out_format = args.format
+    firebase_context = {
+        "project_id": args.firebase_project_id,
+        "app_id": args.firebase_app_id,
+        "id_token": None,
+        "local_id": None,
+    }
 
     # If neither origin nor referer provided, generate a random domain for both
     if not origin and not referer:
@@ -795,29 +1055,64 @@ Examples:
                 )
                 http_code = "n/a"
 
-            elif svc_type == "firebase_identity_toolkit":
-                # Firebase Identity Toolkit: try anonymous sign-up (safe, does not require email)
+            elif svc_type == "firebase_public_config":
+                resp = send_request("GET", url, headers=headers, timeout=TIMEOUT, proxies=proxies, verbose=verbose, verify=tls_verify)
+                classification, detail, data = interpret_firebase_public_config(resp)
+                if isinstance(data, dict) and data.get("projectId") and not firebase_context.get("project_id"):
+                    firebase_context["project_id"] = data["projectId"]
+                http_code = resp.status_code
+
+            elif svc_type == "firebase_auth_signup":
                 payload = {"returnSecureToken": True}
                 resp = send_request("POST", url, headers={**headers, "Content-Type": "application/json"}, json=payload, timeout=TIMEOUT, proxies=proxies, verbose=verbose, verify=tls_verify)
-                data = resp.json() if resp.content else {}
-                if resp.status_code == 200 and "idToken" in data:
-                    classification = "ACCEPTED (anonymous sign-up allowed)"
-                    detail = "Anonymous sign-up succeeded. Key is valid and project allows registration."
-                elif resp.status_code == 400 and "error" in data:
-                    err = data["error"].get("message", "")
-                    if "API_KEY_INVALID" in err:
-                        classification = "REJECTED (invalid key)"
-                        detail = err
-                    elif "OPERATION_NOT_ALLOWED" in err:
-                        classification = "ACCEPTED (key valid, registration disabled)"
-                        detail = err
-                    else:
-                        classification = f"ERROR ({err})"
-                        detail = err
-                else:
-                    classification = f"UNKNOWN ({resp.status_code})"
-                    detail = data
+                classification, detail, data = interpret_firebase_signup(resp)
+                if isinstance(data, dict) and data.get("idToken"):
+                    firebase_context["id_token"] = data["idToken"]
+                    firebase_context["local_id"] = data.get("localId")
                 http_code = resp.status_code
+
+            elif svc_type == "firebase_auth_password_login":
+                payload = {
+                    "email": random_probe_email(),
+                    "password": "GoogAPIKnum-Invalid-Password-123!",
+                    "returnSecureToken": True,
+                }
+                resp = send_request("POST", url, headers={**headers, "Content-Type": "application/json"}, json=payload, timeout=TIMEOUT, proxies=proxies, verbose=verbose, verify=tls_verify)
+                classification, detail, data = interpret_firebase_password_login(resp)
+                http_code = resp.status_code
+
+            elif svc_type == "firebase_auth_provider_lookup":
+                payload = {
+                    "identifier": random_probe_email(),
+                    "continueUri": "https://localhost/",
+                }
+                resp = send_request("POST", url, headers={**headers, "Content-Type": "application/json"}, json=payload, timeout=TIMEOUT, proxies=proxies, verbose=verbose, verify=tls_verify)
+                classification, detail, data = interpret_firebase_provider_lookup(resp)
+                http_code = resp.status_code
+
+            elif svc_type == "firebase_auth_account_lookup":
+                id_token = firebase_context.get("id_token")
+                payload = {"idToken": id_token or "googapi-knum-invalid-id-token"}
+                resp = send_request("POST", url, headers={**headers, "Content-Type": "application/json"}, json=payload, timeout=TIMEOUT, proxies=proxies, verbose=verbose, verify=tls_verify)
+                classification, detail, data = interpret_firebase_account_lookup(resp, used_real_token=bool(id_token))
+                http_code = resp.status_code
+
+            elif svc_type == "firebase_remote_config":
+                project_id = firebase_context.get("project_id")
+                if not project_id:
+                    classification = "UNKNOWN (Remote Config needs project ID)"
+                    detail = "Identity Toolkit public config did not expose projectId; pass --firebase-project-id to test Remote Config fetch."
+                    http_code = "n/a"
+                else:
+                    project_path = quote(str(project_id), safe="")
+                    url = f"https://firebaseremoteconfig.googleapis.com/v1/projects/{project_path}/namespaces/firebase:fetch?key={api_key}"
+                    manual_url = url
+                    payload = {"appInstanceId": random_app_instance_id()}
+                    if firebase_context.get("app_id"):
+                        payload["appId"] = firebase_context["app_id"]
+                    resp = send_request("POST", url, headers={**headers, "Content-Type": "application/json"}, json=payload, timeout=TIMEOUT, proxies=proxies, verbose=verbose, verify=tls_verify)
+                    classification, detail, data = interpret_firebase_remote_config(resp)
+                    http_code = resp.status_code
 
             elif svc_type == "firebase_installations":
                 # Firebase Installations: try POST with dummy data
@@ -831,30 +1126,6 @@ Examples:
                     err = data["error"].get("message", "")
                     if "API_KEY_INVALID" in err:
                         classification = "REJECTED (invalid key)"
-                        detail = err
-                    else:
-                        classification = f"ERROR ({err})"
-                        detail = err
-                else:
-                    classification = f"UNKNOWN ({resp.status_code})"
-                    detail = data
-                http_code = resp.status_code
-
-            elif svc_type == "firebase_auth_rest":
-                # Firebase Auth REST: try anonymous sign-up
-                payload = {"returnSecureToken": True}
-                resp = send_request("POST", url, headers={**headers, "Content-Type": "application/json"}, json=payload, timeout=TIMEOUT, proxies=proxies, verbose=verbose, verify=tls_verify)
-                data = resp.json() if resp.content else {}
-                if resp.status_code == 200 and "idToken" in data:
-                    classification = "ACCEPTED (anonymous sign-up allowed)"
-                    detail = "Anonymous sign-up succeeded. Key is valid and project allows registration."
-                elif resp.status_code == 400 and "error" in data:
-                    err = data["error"].get("message", "")
-                    if "API_KEY_INVALID" in err:
-                        classification = "REJECTED (invalid key)"
-                        detail = err
-                    elif "OPERATION_NOT_ALLOWED" in err:
-                        classification = "ACCEPTED (key valid, registration disabled)"
                         detail = err
                     else:
                         classification = f"ERROR ({err})"
@@ -908,28 +1179,7 @@ Examples:
                     "generationConfig": {"maxOutputTokens": 1},
                 }
                 resp = send_request("POST", url, headers={**headers, "Content-Type": "application/json"}, json=payload, timeout=TIMEOUT, proxies=proxies, verbose=verbose, verify=tls_verify)
-                data = resp.json() if resp.content else {}
-                data_text = str(data).lower()
-                if resp.status_code == 200 and "candidates" in data:
-                    classification = "ACCEPTED (key valid, Gemini responded)"
-                    detail = "Gemini responded. Key is valid."
-                elif resp.status_code == 400 and "API_KEY_INVALID" in str(data):
-                    classification = "REJECTED (invalid key)"
-                    detail = data
-                elif resp.status_code == 403 and (
-                    "api_key_service_blocked" in data_text
-                    or "requests to this api" in data_text
-                    or " are blocked" in data_text
-                    or "api is restricted" in data_text
-                ):
-                    classification = "ACCEPTED (blocked by key API restrictions)"
-                    detail = data
-                elif resp.status_code == 403 and "PERMISSION_DENIED" in str(data):
-                    classification = "ACCEPTED (permission denied)"
-                    detail = data
-                else:
-                    classification = f"UNKNOWN ({resp.status_code})"
-                    detail = data
+                classification, detail = interpret_gemini_response(resp)
                 http_code = resp.status_code
 
             elif svc_type == "vertex_ai":
