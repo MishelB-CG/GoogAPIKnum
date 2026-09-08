@@ -80,6 +80,15 @@ requests with certificate verification disabled when proxy TLS interception is d
 python -m googapi-knum <API_KEY> --verbose
 ```
 
+### Firebase Remote Config context
+```bash
+python -m googapi-knum <API_KEY> --firebase-project-id <PROJECT_ID> --firebase-app-id <APP_ID>
+```
+
+The tool tries to discover the Firebase project ID from Identity Toolkit public
+config first. Supplying these values helps the Remote Config fetch probe when
+the key alone does not expose enough project/app context.
+
 ### Export JSON/CSV/TXT output
 ```bash
 python -m googapi-knum <API_KEY> -f json --out results.json
